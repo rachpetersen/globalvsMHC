@@ -1,0 +1,380 @@
+---
+title: "Supertypes"
+author: "Rachel"
+date: "7/16/2021"
+output: html_document
+---
+
+Load libraries
+```{r}
+library(tidyverse)
+library(dplyr)
+library(stringr)
+library(dynamicTreeCut)
+library(ggplot2)
+library(ggtree)
+library(rcartocolor)
+```
+
+Load data
+```{r}
+ABProteins<- read.csv("ABProteins.csv")
+DQAProteins<- read.csv("DQAProteins.csv")
+DRBProteins<- read.csv("DRBProteins.csv")
+zscores <- read.csv("zscores.csv")
+```
+
+Make new column "together" in z-score data frame that contains all z-scores for an AA separated by a comma
+```{r}
+zscores$together <- paste(zscores$z1, zscores$z2, zscores$z3, zscores$z4, zscores$z5, sep = ",")
+```
+
+
+## AB supertypes
+
+Unique AB alleles
+```{r}
+ABUniqueNamed <- ABProteins %>%
+  select(-Number, -Copies, -ID, -rownames) %>%
+  distinct()
+```
+
+Make new column with AA present at each positively selected site for each allele
+```{r}
+i <- 1
+PSS <- c(16, 25, 27, 38, 41, 42, 44, 45, 48, 49, 51, 52, 54, 55, 57, 58)
+ABUniqueNamed$PSSites <- "X"
+
+for(i in 1:nrow(ABUniqueNamed)){
+  for (j in PSS){
+    AA <- str_sub(ABUniqueNamed[i,4], j, j)
+    ABUniqueNamed[i,7] <- paste(ABUniqueNamed[i,7], AA)
+  }
+  i <- i+1
+}
+```
+
+Remove leading "X" from that column
+```{r}
+AB_PSS_spaces <- ABUniqueNamed %>%
+  mutate(PSSites= str_trim(PSSites)) %>%
+  mutate(PSSites = str_sub(PSSites, 2, nchar(PSSites))) %>%
+  mutate(Name= str_replace_all(Name, "[*:]", "_")) %>%
+  select(Name, PSSites)
+```
+
+Separate AAs into their own columns
+```{r}
+AB_sep <- AB_PSS_spaces %>%
+  separate(PSSites, c("x0","x1","x2","x3","x4","x5","x6","x7","x8","x9","x10","x11","x12","x13","x14","x15","x16")) %>%
+  select(-"x0")
+
+#View(AB_sep)
+```
+
+Replace each AA with its 5 z-scores
+```{r}
+colnum = c("x1","x2","x3","x4","x5","x6","x7","x8","x9","x10","x11","x12","x13","x14","x15","x16")
+
+for (i in colnum) {
+  AB_sep[AB_sep[[i]] == "A", i] <- zscores[1, 9]
+  AB_sep[AB_sep[[i]] == "R", i] <- zscores[2, 9]
+  AB_sep[AB_sep[[i]] == "N", i] <- zscores[3, 9]
+  AB_sep[AB_sep[[i]] == "D", i] <- zscores[4, 9]
+  AB_sep[AB_sep[[i]] == "C", i] <- zscores[5, 9]
+  AB_sep[AB_sep[[i]] == "Q", i] <- zscores[6, 9]
+  AB_sep[AB_sep[[i]] == "E", i] <- zscores[7, 9]
+  AB_sep[AB_sep[[i]] == "G", i] <- zscores[8, 9]
+  AB_sep[AB_sep[[i]] == "H", i] <- zscores[9, 9]
+  AB_sep[AB_sep[[i]] == "I", i] <- zscores[10, 9]
+  AB_sep[AB_sep[[i]] == "L", i] <- zscores[11, 9]
+  AB_sep[AB_sep[[i]] == "K", i] <- zscores[12, 9]
+  AB_sep[AB_sep[[i]] == "M", i] <- zscores[13, 9]
+  AB_sep[AB_sep[[i]] == "F", i] <- zscores[14, 9]
+  AB_sep[AB_sep[[i]] == "P", i] <- zscores[15, 9]
+  AB_sep[AB_sep[[i]] == "S", i] <- zscores[16, 9]
+  AB_sep[AB_sep[[i]] == "T", i] <- zscores[17, 9]
+  AB_sep[AB_sep[[i]] == "W", i] <- zscores[18, 9]
+  AB_sep[AB_sep[[i]] == "Y", i] <- zscores[19, 9]
+  AB_sep[AB_sep[[i]] == "V", i] <- zscores[20, 9]
+}
+
+#View(AB_sep)
+```
+
+Separate each z-score into its own column
+```{r}
+for (i in colnum) {
+  AB_sep <- AB_sep %>%
+  separate(i, c(paste(i,"z1",sep=""), paste(i,"z2",sep=""), paste(i,"z3",sep=""), paste(i,"z4",sep=""), paste(i,"z5",sep="")), sep=",")
+}
+
+AB_genesis <- AB_sep %>%
+  select(-Name) %>%
+  mutate_if(is.character,as.numeric)
+
+AB_genesis <- cbind(AB_sep$Name, AB_genesis) %>%
+  rename(Name = "AB_sep$Name")
+```
+
+Allele name is row, z score columns, 5 for each AA
+```{r}
+#make first column into rownames
+AB_hclust <- AB_genesis[,-1]
+rownames(AB_hclust) <- AB_genesis[,1]
+
+#create distance matrix and perform hierarchical clustering
+ab_dM <- as.matrix(dist(AB_hclust, method = "euclidean"))
+AB_dist <- as.dist(ab_dM)
+ab_hc <- hclust(AB_dist, method="average")
+
+#dyanamic cut
+ab_cut <- cutreeDynamic(ab_hc, method = "hybrid", distM= ab_dM, minClusterSize = 2, deepSplit=2)
+
+ab_supertypes <- as.data.frame(ab_cut)
+
+ab_supertypes <- cbind(ab_supertypes, AB_genesis$Name) %>%
+  rename(Name = "AB_genesis$Name") %>%
+  rename(Supertype= "ab_cut") %>%
+  select(Name, Supertype)
+#View(ab_supertypes)
+#dynamic cut into 12 supertypes
+```
+
+```{r}
+saveRDS(ab_hc, file="ab_hc.Rdata")
+write.csv(ab_supertypes, "ab_supertypes.csv", row.names = FALSE)
+```
+
+# DQA supertypes
+
+Unique DQA alleles
+```{r}
+DQAUniqueNamed <- DQAProteins %>%
+  select(-Number, -Copies, -ID, -rownames) %>%
+  distinct()
+```
+
+Make new column with AA present at each positively selected site for each allele
+```{r}
+i <- 1
+PSS <- c(10,58,65,68)
+DQAUniqueNamed$PSSites <- "X"
+
+for(i in 1:nrow(DQAUniqueNamed)){
+  for (j in PSS){
+    AA <- str_sub(DQAUniqueNamed[i,4], j, j)
+    DQAUniqueNamed[i,7] <- paste(DQAUniqueNamed[i,7], AA)
+  }
+  i <- i+1
+}
+```
+
+Remove leading "X" from that column
+```{r}
+DQA_PSS_spaces <- DQAUniqueNamed %>%
+  mutate(PSSites= str_trim(PSSites)) %>%
+  mutate(PSSites = str_sub(PSSites, 2, nchar(PSSites))) %>%
+  mutate(Name= str_replace_all(Name, "[*:]", "_")) %>%
+  select(Name, PSSites)
+```
+
+Separate AAs into their own columns
+```{r}
+DQA_sep <- DQA_PSS_spaces %>%
+  separate(PSSites, c("x0","x1","x2","x3","x4")) %>%
+  select(-"x0")
+```
+
+Replace each AA with its 5 z-scores
+```{r}
+colnum = c("x1","x2","x3","x4")
+
+for (i in colnum) {
+  DQA_sep[DQA_sep[[i]] == "A", i] <- zscores[1, 9]
+  DQA_sep[DQA_sep[[i]] == "R", i] <- zscores[2, 9]
+  DQA_sep[DQA_sep[[i]] == "N", i] <- zscores[3, 9]
+  DQA_sep[DQA_sep[[i]] == "D", i] <- zscores[4, 9]
+  DQA_sep[DQA_sep[[i]] == "C", i] <- zscores[5, 9]
+  DQA_sep[DQA_sep[[i]] == "Q", i] <- zscores[6, 9]
+  DQA_sep[DQA_sep[[i]] == "E", i] <- zscores[7, 9]
+  DQA_sep[DQA_sep[[i]] == "G", i] <- zscores[8, 9]
+  DQA_sep[DQA_sep[[i]] == "H", i] <- zscores[9, 9]
+  DQA_sep[DQA_sep[[i]] == "I", i] <- zscores[10, 9]
+  DQA_sep[DQA_sep[[i]] == "L", i] <- zscores[11, 9]
+  DQA_sep[DQA_sep[[i]] == "K", i] <- zscores[12, 9]
+  DQA_sep[DQA_sep[[i]] == "M", i] <- zscores[13, 9]
+  DQA_sep[DQA_sep[[i]] == "F", i] <- zscores[14, 9]
+  DQA_sep[DQA_sep[[i]] == "P", i] <- zscores[15, 9]
+  DQA_sep[DQA_sep[[i]] == "S", i] <- zscores[16, 9]
+  DQA_sep[DQA_sep[[i]] == "T", i] <- zscores[17, 9]
+  DQA_sep[DQA_sep[[i]] == "W", i] <- zscores[18, 9]
+  DQA_sep[DQA_sep[[i]] == "Y", i] <- zscores[19, 9]
+  DQA_sep[DQA_sep[[i]] == "V", i] <- zscores[20, 9]
+}
+
+#View(DQA_sep)
+```
+
+Separate each z-score into its own column
+```{r}
+for (i in colnum) {
+  DQA_sep <- DQA_sep %>%
+  separate(i, c(paste(i,"z1",sep=""), paste(i,"z2",sep=""), paste(i,"z3",sep=""), paste(i,"z4",sep=""), paste(i,"z5",sep="")), sep=",")
+}
+
+#View(DQA_sep)
+
+DQA_genesis <- DQA_sep %>%
+  select(-Name) %>%
+  mutate_if(is.character,as.numeric)
+
+DQA_genesis <- cbind(DQA_sep$Name, DQA_genesis) %>%
+  rename(Name = "DQA_sep$Name")
+```
+
+Allele name is row, z score columns, 5 for each AA
+```{r}
+#make first column into rowname 
+DQA_hclust <- DQA_genesis[,-1]
+rownames(DQA_hclust) <- DQA_genesis[,1]
+
+#create distance matrix and perform hierarchical clustering
+dqa_dM <- as.matrix(dist(DQA_hclust, method = "euclidean"))
+DQA_dist <- as.dist(dqa_dM)
+dqa_hc <- hclust(DQA_dist, method="average")
+
+#dynamic cut tree into clusters
+dqa_cut <- cutreeDynamic(dqa_hc, method = "hybrid", distM= dqa_dM, minClusterSize = 1, deepSplit=2)
+
+dqa_supertypes <- as.data.frame(dqa_cut)
+
+dqa_supertypes <- cbind(dqa_supertypes, DQA_genesis$Name) %>%
+  rename(Name = "DQA_genesis$Name") %>%
+  rename(Supertype= "dqa_cut") %>%
+  select(Name, Supertype)
+#View(dqa_supertypes)
+#dynamic cut into 3 supertypes
+```
+
+```{r}
+saveRDS(dqa_hc, "dqa_hc.Rdata")
+write.csv(dqa_supertypes, "dqa_supertypes.csv", row.names = FALSE)
+```
+
+
+### DRB supertypes
+
+Unique DRB alleles
+```{r}
+DRBUniqueNamed <- DRBProteins %>%
+  select(-Number, -Copies, -ID, -rownames) %>%
+  distinct()
+```
+
+Make new column with AA present at each positively selected site for each allele
+```{r}
+i <- 1
+PSS <- c(4,6,19,21,23,25,30,31,50,53,57,60,63,64,67,71,77,79)
+DRBUniqueNamed$PSSites <- "X"
+
+for(i in 1:nrow(DRBUniqueNamed)){
+  for (j in PSS){
+    AA <- str_sub(DRBUniqueNamed[i,4], j, j)
+    DRBUniqueNamed[i,7] <- paste(DRBUniqueNamed[i,7], AA)
+  }
+  i <- i+1
+}
+```
+
+Remove the leading X character
+```{r}
+DRB_PSS_spaces <- DRBUniqueNamed %>%
+  mutate(PSSites= str_trim(PSSites)) %>%
+  mutate(PSSites = str_sub(PSSites, 2, nchar(PSSites))) %>%
+  mutate(Name= str_replace_all(Name, "[*:]", "_")) %>%
+  select(Name, PSSites)
+```
+
+Separate each AA into its own column
+```{r}
+DRB_sep <- DRB_PSS_spaces %>%
+  separate(PSSites, c("x0","x1","x2","x3","x4","x5","x6","x7","x8","x9","x10","x11","x12","x13","x14","x15","x16", "x17", "x18")) %>%
+  select(-"x0")
+
+#View(DRB_sep)
+```
+
+Replace each AA with its 5 z-scores
+```{r}
+colnum = c("x1","x2","x3","x4","x5","x6","x7","x8","x9","x10","x11","x12","x13","x14","x15","x16", "x17", "x18")
+
+for (i in colnum) {
+  DRB_sep[DRB_sep[[i]] == "A", i] <- zscores[1, 9]
+  DRB_sep[DRB_sep[[i]] == "R", i] <- zscores[2, 9]
+  DRB_sep[DRB_sep[[i]] == "N", i] <- zscores[3, 9]
+  DRB_sep[DRB_sep[[i]] == "D", i] <- zscores[4, 9]
+  DRB_sep[DRB_sep[[i]] == "C", i] <- zscores[5, 9]
+  DRB_sep[DRB_sep[[i]] == "Q", i] <- zscores[6, 9]
+  DRB_sep[DRB_sep[[i]] == "E", i] <- zscores[7, 9]
+  DRB_sep[DRB_sep[[i]] == "G", i] <- zscores[8, 9]
+  DRB_sep[DRB_sep[[i]] == "H", i] <- zscores[9, 9]
+  DRB_sep[DRB_sep[[i]] == "I", i] <- zscores[10, 9]
+  DRB_sep[DRB_sep[[i]] == "L", i] <- zscores[11, 9]
+  DRB_sep[DRB_sep[[i]] == "K", i] <- zscores[12, 9]
+  DRB_sep[DRB_sep[[i]] == "M", i] <- zscores[13, 9]
+  DRB_sep[DRB_sep[[i]] == "F", i] <- zscores[14, 9]
+  DRB_sep[DRB_sep[[i]] == "P", i] <- zscores[15, 9]
+  DRB_sep[DRB_sep[[i]] == "S", i] <- zscores[16, 9]
+  DRB_sep[DRB_sep[[i]] == "T", i] <- zscores[17, 9]
+  DRB_sep[DRB_sep[[i]] == "W", i] <- zscores[18, 9]
+  DRB_sep[DRB_sep[[i]] == "Y", i] <- zscores[19, 9]
+  DRB_sep[DRB_sep[[i]] == "V", i] <- zscores[20, 9]
+}
+
+#View(DRB_sep)
+```
+
+Separate each z-score into its own column
+```{r}
+for (i in colnum) {
+  DRB_sep <- DRB_sep %>%
+  separate(i, c(paste(i,"z1",sep=""), paste(i,"z2",sep=""), paste(i,"z3",sep=""), paste(i,"z4",sep=""), paste(i,"z5",sep="")), sep=",")
+}
+
+DRB_genesis <- DRB_sep %>%
+  select(-Name) %>%
+  mutate_if(is.character,as.numeric)
+
+DRB_genesis <- cbind(DRB_sep$Name, DRB_genesis) %>%
+  rename(Name = "DRB_sep$Name")
+```
+
+Allele name is row, z-score columns, 5 for each AA
+```{r}
+#make first column the rownames
+DRB_hclust <- DRB_genesis[,-1]
+rownames(DRB_hclust) <- DRB_genesis[,1]
+
+#create distance matrix and perform hierarchical clustering
+drb_dM <- as.matrix(dist(DRB_hclust, method = "euclidean"))
+DRB_dist <- as.dist(drb_dM)
+drb_hc <- hclust(DRB_dist, method="average")
+
+#dynamic cut tree into clusters
+drb_cut <- cutreeDynamic(drb_hc, method = "hybrid", distM= drb_dM, minClusterSize = 2, deepSplit=2)
+
+drb_supertypes <- as.data.frame(drb_cut)
+
+drb_supertypes <- cbind(drb_supertypes, DRB_genesis$Name) %>%
+  rename(Name = "DRB_genesis$Name") %>%
+  rename(Supertype= "drb_cut") %>%
+  select(Name, Supertype)
+#View(drb_supertypes)
+#dynamic cut into 6 supertypes
+```
+
+```{r}
+saveRDS(drb_hc, "drb_hc.Rdata")
+write.csv(drb_supertypes, "drb_supertypes.csv", row.names = FALSE)
+```
