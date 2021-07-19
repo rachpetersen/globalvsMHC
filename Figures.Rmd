@@ -21,12 +21,12 @@ library(ggpubr)
 
 Load data:
 ```{r}
-Full_Het_df<- read.csv()
+Full_Het_df<- read.csv("Full_heterozygosity_df.csv")
 mapping_rate<-read.csv("mapping_rate.csv", header=TRUE)
 ReadCutoffs <- read.csv("ReadCutoffs.csv")
-drb_supertypes <- read.csv()
-dqa_supertypes <- read.csv()
-ab_supertypes <- read.csv()
+drb_supertypes <- read.csv("drb_supertypes.csv")
+dqa_supertypes <- read.csv("dqa_supertypes.csv")
+ab_supertypes <- read.csv("ab_supertypes.csv")
 ab_hc <- readRDS("ab_hc.Rdata")
 dqa_hc <- readRDS("dqa_hc.Rdata")
 drb_hc <- readRDS("drb_hc.Rdata")

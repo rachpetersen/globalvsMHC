@@ -1,0 +1,152 @@
+---
+title: "Modeling"
+author: "Rachel"
+date: "7/16/2021"
+output: html_document
+---
+
+Load libraries:
+```{r}
+library(tidyverse)
+library(dplyr)
+library(boot)
+library(factoextra)
+library(ggfortify)
+library(corrplot)
+library(psych)
+library(ggplot2)
+library(ggfortify)
+library(cluster)
+library(ggforce)
+library(extrafont)
+library(ggpubr)
+library(robustbase)
+library(MASS)
+library(car)
+```
+
+Load data:
+```{r}
+Full_Het_df<-read.csv("Full_heterozygosity_df.csv")
+MHC_ddRAD_Similarity_tidy<- read.csv("MHC_ddRAD_Similarity_tidy.csv")
+
+```
+
+Move each variable into its own object
+```{r}
+MHCAllhet <- Full_Het_df$MHC_All
+MHCIhet <- Full_Het_df$MHCAB
+MHCIIhet <- Full_Het_df$MHCII
+MHCDQAhet <- Full_Het_df$MHCDQA
+MHCDRBhet <- Full_Het_df$MHCDRB
+SNPhet <- Full_Het_df$stMLH
+ABMeanDiff <- Full_Het_df$ABMeanDiff
+DQAMeanDiff <- Full_Het_df$DQAMeanDiff
+DRBMeanDiff <- Full_Het_df$DRBMeanDiff
+ABMinDiff <- Full_Het_df$ABMinDiff
+DQAMinDiff <- Full_Het_df$DQAMinDiff
+DRBMinDiff <- Full_Het_df$DRBMinDiff
+ABMaxDiff <- Full_Het_df$ABMaxDiff
+DQAMaxDiff <- Full_Het_df$DQAMaxDiff
+DRBMaxDiff <- Full_Het_df$DRBMaxDiff
+AllSuper <- Full_Het_df$All_distinct_supertypes
+ABSuper <- Full_Het_df$AB_distinct_supertypes
+DQASuper <- Full_Het_df$DQA_distinct_supertypes
+DRBSuper <- Full_Het_df$DRB_distinct_supertypes
+ClassIISuper <- Full_Het_df$ClassII_distinct_supertypes
+```
+
+
+#Aim 3: Relationship between Class I and II diversity robust models
+```{r}
+mod10 <- rlm(ClassIISuper ~ ABSuper)
+summary(mod10)
+Anova(mod10, type= "III")
+
+
+mod11 <- rlm(MHCIIhet ~ MHCIhet)
+summary(mod11)
+Anova(mod11, type= "III")
+```
+
+
+# Aim 4: ddRAD and MHC heterozygosity robust models 
+```{r}
+mod1 <- rlm(MHCIhet ~ SNPhet)
+summary(mod1)
+Anovamod1 <- Anova(mod1, type= "III")
+
+mod2 <- rlm(MHCIIhet ~ SNPhet)
+summary(mod2)
+Anovamod2 <- Anova(mod2, type= "III")
+
+mod3 <- rlm(ABMeanDiff ~ SNPhet)
+summary(mod3)
+Anovamod3 <- Anova(mod3, type= "III")
+
+
+mod4 <- rlm(DQAMeanDiff ~ SNPhet)
+summary(mod4)
+Anovamod4 <- Anova(mod4, type= "III")
+
+mod5 <- rlm(DRBMeanDiff~ SNPhet)
+summary(mod5)
+Anovamod5 <- Anova(mod5, type= "III")
+
+mod6 <- rlm(ABSuper ~ SNPhet)
+summary(mod6)
+Anovamod6 <- Anova(mod6, type= "III")
+
+mod7 <- rlm(ClassIISuper ~ SNPhet)
+summary(mod7)
+Anovamod7 <- Anova(mod7, type= "III")
+
+p.adjust(c(Anovamod1[2,3], Anovamod2[2,3], Anovamod3[2,3], Anovamod4[2,3], Anovamod5[2,3], Anovamod6[2,3], Anovamod7[2,3]), method= "fdr")
+```
+
+
+
+# Aim 5: ddRAD and MHC complementarity robust models
+
+```{r}
+ClassI_fullmod <- glmrob(MHCI_common ~ KINSHIP + MHCI_unique, data= MHC_ddRAD_Similarity_tidy, family=poisson);
+ClassI_redmod <- glmrob(MHCI_common ~ MHCI_unique, data= MHC_ddRAD_Similarity_tidy, family=poisson);
+
+kinshipmod1 <- anova(ClassI_fullmod, ClassI_redmod)
+summary(ClassI_fullmod)
+```
+
+```{r}
+ClassII_fullmod <- glmrob(MHCII_common ~ KINSHIP + MHCII_unique, data= MHC_ddRAD_Similarity_tidy, family=poisson);
+ClassII_redmod <- glmrob(MHCII_common ~ MHCII_unique, data= MHC_ddRAD_Similarity_tidy, family=poisson);
+
+kinshipmod2 <- anova(ClassII_fullmod, ClassII_redmod)
+summary(ClassII_fullmod)
+```
+
+
+```{r}
+SupertypeI_fullmod <- glmrob(SupertypeAB_common ~ KINSHIP + SupertypesAB_unique, data= MHC_ddRAD_Similarity_tidy, family= poisson)
+
+SupertypeI_redmod <- glmrob(SupertypeAB_common ~ SupertypesAB_unique, data= MHC_ddRAD_Similarity_tidy, family= poisson)
+
+kinshipmod3 <- anova(SupertypeI_fullmod, SupertypeI_redmod)
+summary(SupertypeI_fullmod)
+```
+
+
+```{r}
+SupertypeII_fullmod <- glmrob(SupertypeII_common ~ KINSHIP + SupertypesII_unique, data= MHC_ddRAD_Similarity_tidy, family= poisson)
+
+SupertypeII_redmod <- glmrob(SupertypeII_common ~ SupertypesII_unique, data= MHC_ddRAD_Similarity_tidy, family= poisson)
+
+kinshipmod4 <- anova(SupertypeII_fullmod, SupertypeII_redmod)
+summary(SupertypeII_fullmod)
+```
+
+```{r}
+p.adjust(c(kinshipmod1[2,4], kinshipmod2[2,4], kinshipmod3[2,4], kinshipmod4[2,4]), method="fdr")
+```
+
+
+
