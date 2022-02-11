@@ -97,6 +97,29 @@ KIN_heat <- ggplot(data=IBD_tidy, aes(x=ID1, y=ID2, fill=IBD)) +
 ggsave("KIN_heat.pdf", KIN_heat, width= 200, height= 150, units= "mm", device = cairo_pdf)
 ```
 
+```{r}
+Relatedness <- read.csv("Relatedness_tidy.csv")
+```
+
+```{r}
+Related_matrix <- pivot_wider(Relatedness, id_cols= "ID1", names_from= "ID2", values_from = "KINSHIP")
+```
+
+```{r}
+Related_matrix <- read.csv("Related_matrix.csv")
+```
+
+
+```{r}
+IBD_wide_tidy<- IBD_wide %>%
+  relocate("1", .before= "2") %>%
+  column_to_rownames(var = "ID1")
+```
+
+```{r}
+write.csv(IBD_wide_tidy, "kin_matrix.csv")
+```
+
 
 Aim 2: Characterize MHC heterozygosity and complementarity
 
@@ -249,3 +272,43 @@ Aim3 <- ggarrange(Alleles, Supertypes, ncol=2, nrow=1)
 ggsave("Aim3.pdf", Aim3, width=7, height=4, device = cairo_pdf)
 ```
 
+Aim 4: Relationship between genome-wide and MHC heterozygosity
+
+Figure 2:
+```{r}
+# get model outputs from Modeling.Rmd file
+
+model1pred <- ggpredict(mod1, terms=c("SNPhet"))
+
+ClassIHetFig <- ggplot(modelpred, aes(x=x, y=predicted)) +
+  geom_line() +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high), alpha = .1) +
+  geom_point(data=Full_Het_df, aes(x=stMLH, y=MHCAB), size=0.5) +
+  theme_light() +
+  theme(text=element_text(family="Times New Roman")) +
+  coord_cartesian(xlim=c(0.88, 1.09)) +
+  xlab("stMLH") +
+  ylab("Count of MHC Class I Alleles"); ClassIHetFig
+```
+
+```{r}
+model2pred <- ggpredict(mod2, terms=c("SNPhet"))
+
+ClassIIHetFig <- ggplot(model2pred, aes(x=x, y=predicted)) +
+  geom_line() +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high), alpha = .1) +
+  geom_point(data=Full_Het_df, aes(x=stMLH, y=MHCII), size= 0.5) +
+  theme_light() +
+  theme(text=element_text(family="Times New Roman")) +
+  coord_cartesian(xlim=c(0.88, 1.09)) +
+  xlab("stMLH") +
+  ylab("Count of MHC Class II Alleles"); ClassIIHetFig
+```
+
+```{r}
+HetModelPlots <- ggarrange(ClassIHetFig, ClassIIHetFig, nrow= 2, labels= "auto", font.label=list(size= 14, family="Times New Roman"))
+```
+
+```{r}
+ggsave("HetModelPlots.pdf", HetModelPlots, height= 14, width= 14, units= "cm", device = cairo_pdf)
+```

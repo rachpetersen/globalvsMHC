@@ -23,13 +23,17 @@ library(ggpubr)
 library(robustbase)
 library(MASS)
 library(car)
+library(pwr)
+library(kinship2)
+library(coxme)
+library(gaston)
+library(ggeffects)
 ```
 
 Load data:
 ```{r}
 Full_Het_df<-read.csv("Full_heterozygosity_df.csv")
 MHC_ddRAD_Similarity_tidy<- read.csv("MHC_ddRAD_Similarity_tidy.csv")
-
 ```
 
 Move each variable into its own object
@@ -69,39 +73,86 @@ summary(mod11)
 Anova(mod11, type= "III")
 ```
 
+```{r}
+mod10kin <- lmekin(ClassII_distinct_supertypes ~ AB_distinct_supertypes + (1|ID), data=Full_Het_df, varlist=kin); mod10kin
 
-# Aim 4: ddRAD and MHC heterozygosity robust models 
+mod11kin <- lmekin(MHCII ~ MHCAB + (1|ID), data=Full_Het_df, varlist=kin); mod11kin
+```
+
+
+# Aim 4: ddRAD and MHC heterozygosity kinship models
+
 ```{r}
 mod1 <- rlm(MHCIhet ~ SNPhet)
 summary(mod1)
-Anovamod1 <- Anova(mod1, type= "III")
+Anovamod1 <- Anova(mod1, type= "III"); Anovamod1
 
 mod2 <- rlm(MHCIIhet ~ SNPhet)
 summary(mod2)
-Anovamod2 <- Anova(mod2, type= "III")
+Anovamod2 <- Anova(mod2, type= "III"); Anovamod2
 
 mod3 <- rlm(ABMeanDiff ~ SNPhet)
 summary(mod3)
-Anovamod3 <- Anova(mod3, type= "III")
+Anovamod3 <- Anova(mod3, type= "III"); Anovamod3
 
 
 mod4 <- rlm(DQAMeanDiff ~ SNPhet)
 summary(mod4)
-Anovamod4 <- Anova(mod4, type= "III")
+Anovamod4 <- Anova(mod4, type= "III"); Anovamod4
 
 mod5 <- rlm(DRBMeanDiff~ SNPhet)
 summary(mod5)
-Anovamod5 <- Anova(mod5, type= "III")
+Anovamod5 <- Anova(mod5, type= "III"); Anovamod5
 
 mod6 <- rlm(ABSuper ~ SNPhet)
 summary(mod6)
-Anovamod6 <- Anova(mod6, type= "III")
+Anovamod6 <- Anova(mod6, type= "III"); Anovamod6
 
 mod7 <- rlm(ClassIISuper ~ SNPhet)
 summary(mod7)
-Anovamod7 <- Anova(mod7, type= "III")
+Anovamod7 <- Anova(mod7, type= "III"); Anovamod7
 
-p.adjust(c(Anovamod1[2,3], Anovamod2[2,3], Anovamod3[2,3], Anovamod4[2,3], Anovamod5[2,3], Anovamod6[2,3], Anovamod7[2,3]), method= "fdr")
+
+p.adjust(c(Anovamod1[2,3], Anovamod2[2,3], Anovamod3[2,3], Anovamod4[2,3], Anovamod5[2,3], Anovamod6[2,3], Anovamod7[2,3]), method= "BH")
+```
+
+
+
+
+
+kinship analyses
+```{r}
+bed <- read.bed.matrix("refmap_pruned")
+kin <- gaston::GRM(bed, autosome.only = FALSE)
+rownames(kin) <- c(1:22)
+colnames(kin) <- c(1:22)
+```
+
+```{r}
+mod1kin <- lmekin(MHCAB ~ stMLH + (1|ID), data=Full_Het_df, varlist=kin); mod1kin
+
+mod2kin <- lmekin(MHCII ~ stMLH + (1|ID), data=Full_Het_df, varlist=kin); mod2kin
+
+mod3kin <- lmekin(ABMeanDiff ~ stMLH + (1|ID), data=Full_Het_df, varlist=kin); mod3kin
+
+mod4kin <- lmekin(DQAMeanDiff ~ stMLH + (1|ID), data=Full_Het_df, varlist=kin); mod4kin
+
+mod5kin <- lmekin(DRBMeanDiff ~ stMLH + (1|ID), data=Full_Het_df, varlist=kin); mod5kin
+
+mod6kin <- lmekin(AB_distinct_supertypes ~ stMLH + (1|ID), data=Full_Het_df, varlist=kin); mod6kin
+
+mod7kin <- lmekin(ClassII_distinct_supertypes ~ stMLH + (1|ID), data=Full_Het_df, varlist=kin); mod7kin
+```
+
+power analysis
+numerator degrees of freedom= # of predictors
+demoninator degrees of freedom= # of observations - (# of predictors +1)
+```{r}
+pwr.f2.test(u = 1, v = 20, sig.level = 0.05, power =0.8 )
+
+pwr.f2.test(u = 1, v = 20, sig.level = 0.05, power =0.5 )
+
+pwr.f2.test(u = 1, v = 20, sig.level = 0.05, power= 0.1 )
 ```
 
 
