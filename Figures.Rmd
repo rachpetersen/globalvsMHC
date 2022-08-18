@@ -248,58 +248,35 @@ ggsave("DRB_supertype_tree.pdf", drb_tiptree, height= 150, width= 250, units= "m
 ```
 
 
-Aim 3: Trade-offs in MHC diversity components
-
-Figure 2: Negative relationship between class I and II diversity
-```{r}
-Supertypes <- ggplot(Full_Het_df,aes(y=ClassII_distinct_supertypes,x=AB_distinct_supertypes)) + 
-  geom_point(shape= 18, color="black") + 
-  geom_smooth(method="lm", color="black", alpha= 0.2, size=0.3) +
-  theme_classic() +
-  theme(text=element_text(family="Times New Roman")) +
-  ylab("Number Class II Supertypes") +
-  xlab("Number Class I Supertypes") 
-
-Alleles <- ggplot(Full_Het_df,aes(y=MHCII,x=MHCAB)) + 
-  geom_point(shape= 18, color="black") + 
-  geom_smooth(method="lm", color="black", alpha=0.2, size=0.3) +
-  theme_classic() + 
-  theme(text=element_text(family="Times New Roman")) +
-  ylab("Number Class II Alleles") +
-  xlab("Number Class I Alleles") 
-
-Aim3 <- ggarrange(Alleles, Supertypes, ncol=2, nrow=1)
-ggsave("Aim3.pdf", Aim3, width=7, height=4, device = cairo_pdf)
-```
-
 Aim 4: Relationship between genome-wide and MHC heterozygosity
 
 Figure 2:
 ```{r}
 # get model outputs from Modeling.Rmd file
+mod1 <- rlm(MHCAB ~ stMLH, data=Full_Het_df)
+model1pred <- ggpredict(mod1, terms=c("stMLH"))
 
-model1pred <- ggpredict(mod1, terms=c("SNPhet"))
-
-ClassIHetFig <- ggplot(modelpred, aes(x=x, y=predicted)) +
+ClassIHetFig <- ggplot(model1pred, aes(x=x, y=predicted)) +
   geom_line() +
   geom_ribbon(aes(ymin = conf.low, ymax = conf.high), alpha = .1) +
   geom_point(data=Full_Het_df, aes(x=stMLH, y=MHCAB), size=0.5) +
   theme_light() +
-  theme(text=element_text(family="Times New Roman")) +
+  theme(text=element_text(family="Times New Roman"), plot.margin = margin(10, 10, 11, 10)) +
   coord_cartesian(xlim=c(0.88, 1.09)) +
   xlab("stMLH") +
   ylab("Count of MHC Class I Alleles"); ClassIHetFig
 ```
 
 ```{r}
-model2pred <- ggpredict(mod2, terms=c("SNPhet"))
+mod2 <- rlm(MHCIIhet ~ stMLH, data=Full_Het_df)
+model2pred <- ggpredict(mod2, terms=c("stMLH"))
 
 ClassIIHetFig <- ggplot(model2pred, aes(x=x, y=predicted)) +
   geom_line() +
   geom_ribbon(aes(ymin = conf.low, ymax = conf.high), alpha = .1) +
   geom_point(data=Full_Het_df, aes(x=stMLH, y=MHCII), size= 0.5) +
   theme_light() +
-  theme(text=element_text(family="Times New Roman")) +
+  theme(text=element_text(family="Times New Roman"), plot.margin = margin(10, 10, 11, 10)) +
   coord_cartesian(xlim=c(0.88, 1.09)) +
   xlab("stMLH") +
   ylab("Count of MHC Class II Alleles"); ClassIIHetFig
@@ -310,5 +287,5 @@ HetModelPlots <- ggarrange(ClassIHetFig, ClassIIHetFig, nrow= 2, labels= "auto",
 ```
 
 ```{r}
-ggsave("HetModelPlots.pdf", HetModelPlots, height= 14, width= 14, units= "cm", device = cairo_pdf)
+ggsave("HetModelPlots.eps", HetModelPlots, height= 14, width= 14, units= "cm", device = cairo_ps)
 ```

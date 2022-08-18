@@ -1,0 +1,38 @@
+﻿Column name,Description
+refmap,absolute genome-wide heterozygosity calculated from SNP data
+stMLH,standardized multi-locus heterozygosity calculated from refmap
+MHC_All,Number of MHC alleles at all 4 loci combined
+MHCAB,Number of MHC alleles at class I (A and B) loci
+MHCII,Number of MHC alleles at class II (DQA and DRB) loci
+MHCDQA,Number of DQA alleles
+MHCDRB,Number of DRB alleles
+AB_distinct_supertypes,Number of class I supertypes
+DQA_distinct_supertypes,Number of DQA supertypes
+DRB_distinct_supertypes,Number of DRB supertypes
+All_distinct_supertypes,Number of supertypes at both class types combined
+ClassII_distinct_supertypes,Number of class II supertypes
+ABMeanDiff,Mean number of amino acid differences between class I alleles
+ABMinDiff,Minimum number of amino acid differences between class I alleles
+ABMaxDiff,Maximum number of amino acid differences between class I alleles
+DQAMeanDiff,Mean number of amino acid differences between DQA alleles
+DQAMinDiff,Min number of amino acid differences between DQA alleles
+DQAMaxDiff,Max number of amino acid differences between DQA alleles
+DRBMeanDiff,Mean number of amino acid differences between DRB alleles
+DRBMinDiff,Min number of amino acid differences between DRB alleles
+DRBMaxDiff,Max number of amino acid differences between DRB alleles
+MHCAll_perc_similar,Percent of class I and II alleles shared
+MHCI_perc_similar,Percent of class I alleles shared
+MHCII_perc_similar,Percent of class II alleles shared
+KINSHIP,Kinship * 2 = relatedness coefficient
+MHCall_common,Number of MHC alleles shared in common by 2 individulas at all 4 loci
+MHCall_unique,Number of unique MHC alleles possessed by 2 individuals at all 4 loci
+MHCI_common,Number of class I alleles shared in common by 2 individulas
+MHCI_unique,Number of unique class I alleles possessed by 2 individuals
+MHCII_common,Number of class II alleles shared in common by 2 individulas
+MHCII_unique,Number of unique class II alleles possessed by 2 individuals
+Supertypeall_common,Number of MHC supertypes shared in common by 2 individulas at all 4 loci
+Supertypesall_unique,Number of unique MHC supertypes possessed by 2 individuals at all 4 loci
+SupertypeAB_common,Number of class I supertypes shared in common by 2 individulas
+SupertypeAB_unique,Number of unique class I supertypes possessed by 2 individuals
+SupertypeII_common,Number of class II supertypes shared in common by 2 individulas
+SupertypeII_unique,Number of unique class II supertypes possessed by 2 individuals
