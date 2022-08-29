@@ -30,6 +30,8 @@ ab_supertypes <- read.csv("ab_supertypes.csv")
 ab_hc <- readRDS("ab_hc.Rdata")
 dqa_hc <- readRDS("dqa_hc.Rdata")
 drb_hc <- readRDS("drb_hc.Rdata")
+IBD <- read.csv('IBDinput.csv', h=T)
+id_map <- read.csv("id_map.csv", h=T)
 ```
 
 
@@ -51,7 +53,7 @@ Mapping<- ggplot(mapping_rate, aes(x=reorder(ID, -Mapped), y=Mapped)) +
 ggsave(Mapping,file='Mapping.pdf',width=8,height=4, device=cairo_pdf)
 ```
 
-Figure S3: Heatmap of relatedness
+Figure S4: Heatmap of relatedness
 ```{r}
 IBD <- read.csv('IBDinput.csv', h=T)
 id_map <- read.csv("id_map.csv", h=T)
@@ -95,29 +97,6 @@ KIN_heat <- ggplot(data=IBD_tidy, aes(x=ID1, y=ID2, fill=IBD)) +
   theme(text=element_text(family="Times New Roman"), legend.text = element_text(size = 7)); KIN_heat
 
 ggsave("KIN_heat.pdf", KIN_heat, width= 200, height= 150, units= "mm", device = cairo_pdf)
-```
-
-```{r}
-Relatedness <- read.csv("Relatedness_tidy.csv")
-```
-
-```{r}
-Related_matrix <- pivot_wider(Relatedness, id_cols= "ID1", names_from= "ID2", values_from = "KINSHIP")
-```
-
-```{r}
-Related_matrix <- read.csv("Related_matrix.csv")
-```
-
-
-```{r}
-IBD_wide_tidy<- IBD_wide %>%
-  relocate("1", .before= "2") %>%
-  column_to_rownames(var = "ID1")
-```
-
-```{r}
-write.csv(IBD_wide_tidy, "kin_matrix.csv")
 ```
 
 
@@ -185,7 +164,7 @@ MHCdiversityhist <- ggarrange(MHCIhist, MHCIIhist, MHCIsuperhist, MHCIIsuperhist
 ggsave("Fig1.MHCHist.pdf", MHCdiversityhist, height= 150, width= 150, units= "mm", device = cairo_pdf)
 ```
 
-Figure S5: Twelve MHC A & B supertypes
+Figure S6: Twelve MHC A & B supertypes
 ```{r}
 tree <- ggtree(ab_hc) +
   geom_tiplab(offset= 0.2, cex=2.5, family="Times New Roman") +
@@ -208,7 +187,7 @@ tiptree
 ggsave("AB_supertype_tree.pdf", tiptree, height=200, width= 250, units= "mm", device= cairo_pdf)
 ```
 
-Figure S6: Three MHC DQA supertypes
+Figure S8: Three MHC DQA supertypes
 ```{r}
 tree <- ggtree(dqa_hc) +
   geom_tiplab(offset= 0.2, cex=3, family= "Times New Roman") +
@@ -227,7 +206,7 @@ dqa_tiptree <- rotatetree %<+% dqa_supertypes +
 ggsave("DQA_supertype_tree.pdf", dqa_tiptree, height= 100, width= 175, units= "mm", device= cairo_pdf)
 ```
 
-Figure S9: Six MHC DRB supertypes
+Figure S10: Six MHC DRB supertypes
 ```{r}
 tree <- ggtree(drb_hc) +
   geom_tiplab(offset= 0.2, cex=3, family="Times New Roman") +
@@ -252,7 +231,6 @@ Aim 4: Relationship between genome-wide and MHC heterozygosity
 
 Figure 2:
 ```{r}
-# get model outputs from Modeling.Rmd file
 mod1 <- rlm(MHCAB ~ stMLH, data=Full_Het_df)
 model1pred <- ggpredict(mod1, terms=c("stMLH"))
 
@@ -288,4 +266,40 @@ HetModelPlots <- ggarrange(ClassIHetFig, ClassIIHetFig, nrow= 2, labels= "auto",
 
 ```{r}
 ggsave("HetModelPlots.eps", HetModelPlots, height= 14, width= 14, units= "cm", device = cairo_ps)
+```
+
+#Figure S3: diversity comparisons
+
+```{r}
+Awashhet <- read.csv("Awash_plink_het_output.csv")
+Papiohet <- read.csv("plink_het_output_allpapio.csv")
+species <- read.csv("Papio_diversity_panel_sample_IDs.csv")
+```
+
+```{r}
+Awashhet.tidy <- Awashhet %>%
+  mutate(Pop = "anubis (Awash, Ethiopia)")
+
+Papiohet.join <- left_join(Papiohet, species) 
+
+Papiohet.tidy <-  Papiohet.join %>%
+  dplyr::select(-Species) %>%
+  dplyr::select(-comment)
+
+Allpapiohetplot <- rbind(Awashhet.tidy, Papiohet.tidy)
+```
+
+```{r}
+Het_boxplot <- ggplot(data=Allpapiohetplot, aes(x=Pop, y=Perc_het, fill=Pop)) +
+  geom_boxplot(lwd=0.2) +
+  geom_point(position= position_jitter(height=0.3), size=0.2) +
+  ylab("Percent of SNPs heterozygous") +
+  xlab(" ") +
+  theme_bw() +
+  theme(axis.text.x = element_text(size =7, angle = 45, hjust=1, vjust=1.02), text=element_text(family="Times New Roman")) + 
+  labs(fill="Species (Population)"); Het_boxplot
+```
+
+```{r}
+ggsave("Het_boxplot.pdf", Het_boxplot, device=cairo_pdf, height=5, width=8.5)
 ```
