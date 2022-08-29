@@ -2,11 +2,8 @@
 Comparison of genome-wide versus MHC-specific diversity and complementarity in olive baboons
 
 R SCRIPTS:
-
 Modeling.Rmd contains the scripts to perform modeling for aims 3-5, and the power analysis.
-
 Supertypes.Rmd contains the scripts used to identify MHC supertypes
-
 Figures.Rmd contains the scripts used to make the publication’s figures
 
 SHELL SCRIPTS:
